@@ -12,6 +12,13 @@ import { fetchAll, friendlyError, supabase } from '@/lib/supabase';
 import { MONTHS, monthRange, shortDate, tokyoYearMonth, yen } from '@/lib/format';
 import type { Expense } from '@/lib/types';
 
+function notePreview(note: string, words = 5, maxChars = 40) {
+  const parts = note.trim().split(/\s+/);
+  let out = parts.slice(0, words).join(' ');
+  if (out.length > maxChars) out = out.slice(0, maxChars).trimEnd();
+  return out.length < parts.join(' ').length ? `${out}…` : out;
+}
+
 export default function HomePage() {
   const { sheet, categories, people } = useApp();
   const [{ y, m }, setYM] = useState(tokyoYearMonth);
@@ -27,7 +34,7 @@ export default function HomePage() {
       const rows = await fetchAll<Expense>((from, to) =>
         supabase()
           .from('expenses')
-          .select('id,name,amount,category_id,payment_method,spent_on,created_by,created_at')
+          .select('id,name,note,amount,category_id,payment_method,spent_on,created_by,created_at')
           .is('deleted_at', null)
           .gte('spent_on', start)
           .lt('spent_on', end)
@@ -120,6 +127,7 @@ export default function HomePage() {
                     <Link key={it.id} href={`/expense/${it.id}`} className="list-row">
                       <span>
                         <span className="row-main">{it.name}</span>
+                        {it.note && <span className="row-sub">{notePreview(it.note)}</span>}
                         <span className="row-sub">{shortDate(it.spent_on)}, {personName.get(it.created_by) ?? 'Former member'}</span>
                       </span>
                       <span className="amount">{yen(it.amount)}</span>

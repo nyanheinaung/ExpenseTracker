@@ -34,7 +34,7 @@ export default function HistoryPage() {
       const rows = await fetchAll<Expense>((from, to) =>
         supabase()
           .from('expenses')
-          .select('id,name,amount,category_id,payment_method,spent_on,created_by,created_at')
+          .select('id,name,note,amount,category_id,payment_method,spent_on,created_by,created_at')
           .is('deleted_at', null)
           .gte('spent_on', start)
           .lt('spent_on', end)
@@ -108,13 +108,14 @@ export default function HistoryPage() {
       .map((it) => [
         it.spent_on,
         it.name,
+        it.note ?? '',
         catName.get(it.category_id) ?? 'Other',
         paymentLabel(it.payment_method),
         it.amount,
         personName.get(it.created_by) ?? 'Former member',
         new Date(it.created_at).toLocaleString('en-CA', { timeZone: 'Asia/Tokyo', hour12: false })
       ]);
-    downloadCsv(`expenses_${safe}_${period}.csv`, ['Date', 'Name', 'Category', 'Payment', 'Amount', 'Entered by', 'Created at'], rows);
+    downloadCsv(`expenses_${safe}_${period}.csv`, ['Date', 'Name', 'Note', 'Category', 'Payment', 'Amount', 'Entered by', 'Created at'], rows);
   }
 
   const periodLabel = mode === 'month' ? `${SHORT_MONTHS[m]} ${y}` : String(y);
@@ -177,6 +178,7 @@ export default function HistoryPage() {
                   <Link key={it.id} href={`/expense/${it.id}`} className="list-row">
                     <span>
                       <span className="row-main">{it.name}</span>
+                      {it.note && <span className="row-sub">{it.note}</span>}
                       <span className="row-sub">
                         {catName.get(it.category_id) ?? 'Other'}, {paymentLabel(it.payment_method)}, {personName.get(it.created_by) ?? 'Former member'}
                       </span>

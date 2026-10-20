@@ -24,11 +24,12 @@ export default function ExpenseForm({ expenseId }: { expenseId?: string }) {
   const [original, setOriginal] = useState<Expense | null>(null);
   const [loadError, setLoadError] = useState('');
   const [name, setName] = useState('');
+  const [note, setNote] = useState('');
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [payment, setPayment] = useState<Payment>('cash');
   const [date, setDate] = useState(tokyoToday());
-  const [errors, setErrors] = useState<{ name?: string; amount?: string; form?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; note?: string; amount?: string; form?: string }>({});
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
@@ -54,7 +55,7 @@ export default function ExpenseForm({ expenseId }: { expenseId?: string }) {
     if (!expenseId) return;
     supabase()
       .from('expenses')
-      .select('id,name,amount,category_id,payment_method,spent_on,created_by,created_at,deleted_at')
+      .select('id,name,note,amount,category_id,payment_method,spent_on,created_by,created_at,deleted_at')
       .eq('id', expenseId)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -65,6 +66,7 @@ export default function ExpenseForm({ expenseId }: { expenseId?: string }) {
         const e = data as Expense;
         setOriginal(e);
         setName(e.name);
+        setNote(e.note ?? '');
         setAmount(e.amount.toLocaleString('en-US'));
         setCategoryId(e.category_id);
         setPayment(e.payment_method);
@@ -89,6 +91,8 @@ export default function ExpenseForm({ expenseId }: { expenseId?: string }) {
     const a = parseAmount(amount);
     if (!n) errs.name = 'Please enter a name for this expense.';
     else if (n.length > 100) errs.name = 'Keep the name under 100 characters.';
+    const nt = note.trim();
+    if (nt.length > 200) errs.note = 'Keep the note under 200 characters.';
     if (!amount.trim()) errs.amount = 'Please enter an amount.';
     else if (!Number.isFinite(a) || a <= 0) errs.amount = 'Enter the amount in whole yen, like 1240.';
     else if (a > 99999999) errs.amount = 'That amount is too large.';
@@ -98,7 +102,7 @@ export default function ExpenseForm({ expenseId }: { expenseId?: string }) {
     if (Object.keys(errs).length || !userId || !sheet) return;
 
     setBusy(true);
-    const row = { name: n, amount: a, category_id: categoryId, payment_method: payment, spent_on: date };
+    const row = { name: n, note: nt || null, amount: a, category_id: categoryId, payment_method: payment, spent_on: date };
     const res = editing
       ? await supabase().from('expenses').update(row).eq('id', expenseId as string).select('id')
       : await supabase().from('expenses').insert({ ...row, sheet_id: sheet.id, created_by: userId }).select('id');
@@ -200,6 +204,23 @@ export default function ExpenseForm({ expenseId }: { expenseId?: string }) {
               )}
             </div>
             {errors.name && <p className="error-text" id="name-error">{errors.name}</p>}
+          </div>
+
+          <div className="field">
+            <label className="label" htmlFor="note">Note <span className="opt">(optional)</span></label>
+            <input
+              id="note"
+              className="input"
+              autoComplete="off"
+              placeholder="e.g. Shinjuku → Shibuya"
+              maxLength={200}
+              disabled={!canEdit}
+              value={note}
+              aria-invalid={errors.note ? 'true' : 'false'}
+              aria-describedby={errors.note ? 'note-error' : undefined}
+              onChange={(e) => { setNote(e.target.value); setErrors((x) => ({ ...x, note: undefined })); }}
+            />
+            {errors.note && <p className="error-text" id="note-error">{errors.note}</p>}
           </div>
 
           <div className="field">

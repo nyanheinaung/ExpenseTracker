@@ -51,6 +51,7 @@ create table public.expenses (
   id              uuid primary key default gen_random_uuid(),
   sheet_id        uuid not null references public.sheets(id),
   name            text not null check (char_length(trim(name)) between 1 and 100),
+  note            text check (note is null or char_length(note) <= 200),
   amount          integer not null check (amount > 0 and amount <= 99999999),
   category_id     uuid not null references public.categories(id),
   payment_method  text not null check (payment_method in ('cash','card','transfer')),

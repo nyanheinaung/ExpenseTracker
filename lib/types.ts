@@ -20,6 +20,7 @@ export type Payment = 'cash' | 'card' | 'transfer';
 export type Expense = {
   id: string;
   name: string;
+  note?: string | null;
   amount: number;
   category_id: string;
   payment_method: Payment;
